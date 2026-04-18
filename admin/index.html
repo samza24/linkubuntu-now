@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<!--
+  FILE: admin/index.html
+  PURPOSE: Admin panel — your temporary Home Affairs replacement.
+  Add, edit, delete citizens, enrol fingerprints, manage responders.
+  PASSWORD PROTECTED with a simple PIN for the demo.
+  This is where you add your 6 real team members before the hackathon.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkUbuntu — Admin Panel</title>
+  <link rel="stylesheet" href="../css/style.css"/>
+  <style>
+    .topbar { background: var(--red-admin); }
+    .btn-primary-here { background: var(--red-admin); }
+    .tab-bar { display:flex; border-bottom:2px solid var(--border); margin-bottom:16px; }
+    .tab { padding:10px 16px; font-size:13px; font-weight:500; cursor:pointer; border:none; background:none; color:var(--gray-mid); border-bottom:3px solid transparent; margin-bottom:-2px; font-family:'Ubuntu',sans-serif; }
+    .tab.active { color:var(--red-admin); border-bottom-color:var(--red-admin); }
+    .tab-pane { display:none; }
+    .tab-pane.active { display:block; }
+    .citizen-card { background:white; border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; margin-bottom:10px; }
+    .citizen-card-header { display:flex; align-items:center; gap:12px; }
+    .enrol-btn { background:var(--purple); color:white; font-size:11px; padding:4px 10px; border:none; border-radius:6px; cursor:pointer; font-family:'Ubuntu',sans-serif; }
+    .enrol-btn.done { background:var(--green); }
+    .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); z-index:100; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:white; border-radius:var(--radius-lg); padding:20px; width:90%; max-width:440px; max-height:90vh; overflow-y:auto; }
+    .modal-title { font-size:16px; font-weight:700; margin-bottom:14px; }
+    .fp-zone { background:#0D1B2A; border-radius:12px; padding:20px; text-align:center; min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; cursor:pointer; margin-bottom:12px; position:relative; overflow:hidden; }
+    .fp-status { color:#90CAF9; font-size:13px; }
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ============ LOCK SCREEN ============ -->
+<div id="lock-screen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FFF5F5;">
+  <div style="background:white;border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;max-width:340px;width:90%;text-align:center;box-shadow:var(--shadow);">
+    <div style="font-size:36px;margin-bottom:12px;">🔐</div>
+    <div style="font-size:18px;font-weight:700;color:var(--red-admin);margin-bottom:6px;">Admin Panel</div>
+    <div style="font-size:12px;color:var(--gray-mid);margin-bottom:20px;">LinkUbuntu — Authorised access only</div>
+    <div class="field-label">Admin PIN</div>
+    <input class="field-input" id="admin-pin" type="password" placeholder="Enter admin PIN" maxlength="6"/>
+    <button class="btn btn-red" onclick="checkAdminPin()">Enter</button>
+    <div style="margin-top:12px;font-size:11px;color:var(--gray-mid);">Default PIN: <strong>123456</strong></div>
+    <div style="margin-top:8px;"><a href="../" style="font-size:12px;color:var(--gray-mid);">← Back to home</a></div>
+  </div>
+</div>
+
+<!-- ============ MAIN ADMIN APP ============ -->
+<div id="admin-app" style="display:none;">
+
+  <div class="topbar red">
+    <div>
+      <div class="topbar-title">LinkUbuntu Admin</div>
+      <div class="topbar-sub">Citizen & Responder Management</div>
+    </div>
+    <button class="back-btn" onclick="adminLogout()">Sign out</button>
+  </div>
+
+  <div class="content" style="max-width:700px;">
+
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('citizens')">Citizens</button>
+      <button class="tab" onclick="switchTab('responders')">Responders</button>
+      <button class="tab" onclick="switchTab('logs')">Scan logs</button>
+    </div>
+
+    <!-- ======== CITIZENS TAB ======== -->
+    <div id="tab-citizens" class="tab-pane active">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;">Registered citizens</div>
+        <button class="btn btn-red btn-sm" onclick="openAddCitizen()">+ Add citizen</button>
+      </div>
+      <div id="citizens-list"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ======== RESPONDERS TAB ======== -->
+    <div id="tab-responders" class="tab-pane">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;">Authorised responders</div>
+        <button class="btn btn-red btn-sm" onclick="openAddResponder()">+ Add responder</button>
+      </div>
+      <div id="responders-list"><div class="spinner"></div></div>
+    </div>
+
+    <!-- ======== LOGS TAB ======== -->
+    <div id="tab-logs" class="tab-pane">
+      <div style="font-size:15px;font-weight:700;margin-bottom:14px;">Scan audit logs</div>
+      <div id="logs-list"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======== ADD / EDIT CITIZEN MODAL ======== -->
+<div class="modal-overlay" id="citizen-modal">
+  <div class="modal">
+    <div class="modal-title" id="citizen-modal-title">Add citizen</div>
+
+    <!-- Photo upload -->
+    <div style="display:flex;justify-content:center;margin-bottom:16px;">
+      <div class="photo-upload-area" id="photo-preview" onclick="document.getElementById('photo-file').click()">
+        <span style="font-size:28px;">📷</span>
+      </div>
+      <input type="file" id="photo-file" accept="image/*" style="display:none" onchange="previewPhoto(this)"/>
+    </div>
+    <div style="text-align:center;font-size:11px;color:var(--gray-mid);margin-bottom:14px;">Tap photo to upload</div>
+
+    <div class="field-label">SA ID number *</div>
+    <input class="field-input" id="c-id" placeholder="13-digit SA ID number" maxlength="13" inputmode="numeric"/>
+
+    <div class="field-label">Full name *</div>
+    <input class="field-input" id="c-name" placeholder="Full name as on ID"/>
+
+    <div class="field-label">Phone number *</div>
+    <input class="field-input" id="c-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
+
+    <div style="background:var(--gold-lt);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px;color:var(--gray-dark);">
+      <strong>Optional medical info</strong> — citizen can update this themselves after registration
+    </div>
+
+    <div class="field-label">Blood type (optional)</div>
+    <select class="field-input" id="c-blood">
+      <option value="">Not specified</option>
+      <option>A+</option><option>A-</option>
+      <option>B+</option><option>B-</option>
+      <option>AB+</option><option>AB-</option>
+      <option>O+</option><option>O-</option>
+    </select>
+
+    <div class="field-label">Known allergies (optional)</div>
+    <input class="field-input" id="c-allergy" placeholder="e.g. Penicillin, Latex, None"/>
+
+    <div class="field-label">Medical condition (optional)</div>
+    <input class="field-input" id="c-condition" placeholder="e.g. Diabetic, Epilepsy, None"/>
+
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-red" style="flex:1;" onclick="saveCitizenForm()">Save citizen</button>
+      <button class="btn-outline" style="flex:1;margin-top:0;" onclick="closeModal('citizen-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======== FINGERPRINT ENROL MODAL ======== -->
+<div class="modal-overlay" id="fp-modal">
+  <div class="modal">
+    <div class="modal-title">Enrol fingerprint</div>
+    <div style="font-size:13px;color:var(--gray-mid);margin-bottom:12px;" id="fp-citizen-name">Citizen: —</div>
+
+    <div class="fp-zone" id="fp-zone" onclick="startFPEnrol()">
+      <div class="scan-line" id="fp-scan-line"></div>
+      <video id="fp-video" autoplay playsinline muted style="display:none;width:100%;height:160px;object-fit:cover;border-radius:8px;"></video>
+      <div id="fp-icon-group">
+        <div class="scan-ring"><div class="scan-inner">👆</div></div>
+        <div class="fp-status">Tap to start fingerprint enrolment</div>
+      </div>
+      <div class="scan-prog" id="fp-prog" style="display:none;width:80%;">
+        <div class="scan-fill" id="fp-fill" style="width:0%;"></div>
+      </div>
+    </div>
+
+    <div id="fp-status-text" style="font-size:12px;color:var(--gray-mid);text-align:center;min-height:18px;margin-bottom:10px;"></div>
+    <div id="fp-result" style="display:none;" class="card" style="background:var(--green-lt);">
+      <div style="color:var(--green);font-weight:700;font-size:13px;">✓ Fingerprint enrolled successfully</div>
+      <div style="font-size:11px;color:var(--gray-mid);margin-top:4px;">The fingerprint template has been saved to the database.</div>
+    </div>
+
+    <button class="btn-outline" onclick="closeFPModal()">Close</button>
+  </div>
+</div>
+
+<!-- ======== ADD RESPONDER MODAL ======== -->
+<div class="modal-overlay" id="responder-modal">
+  <div class="modal">
+    <div class="modal-title">Add responder</div>
+    <div class="field-label">Employee / badge number *</div>
+    <input class="field-input" id="r-empnum" placeholder="e.g. SAPS-20241891"/>
+    <div class="field-label">Full name *</div>
+    <input class="field-input" id="r-name" placeholder="Officer full name"/>
+    <div class="field-label">Role *</div>
+    <select class="field-input" id="r-role">
+      <option>SAPS Officer</option>
+      <option>Paramedic / EMS</option>
+      <option>Traffic Officer</option>
+      <option>Forensic Pathologist</option>
+    </select>
+    <div class="field-label">Contact phone</div>
+    <input class="field-input" id="r-phone" placeholder="Officer phone number"/>
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button class="btn btn-red" style="flex:1;" onclick="saveResponderForm()">Save responder</button>
+      <button class="btn-outline" style="flex:1;margin-top:0;" onclick="closeModal('responder-modal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import {
+  saveCitizen, getCitizen, getAllCitizens, updateCitizen, deleteCitizen,
+  saveResponder, saveFingerprint, logScan, uploadPhoto,
+  db
+} from '../js/firebase-config.js';
+import { collection, getDocs, orderBy, query } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// ---- STATE ----
+let editingID      = null;   // null = adding new, string = editing existing
+let photoFile      = null;   // File object for photo upload
+let fpCitizenID    = null;   // ID of citizen being fingerprint-enrolled
+let fpStream       = null;   // Camera stream for fingerprint
+let fpActive       = false;
+
+// ---- PIN CHECK ----
+function checkAdminPin() {
+  const pin = document.getElementById('admin-pin').value;
+  if (pin === '123456') {
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'block';
+    loadCitizens();
+  } else {
+    showToast('Wrong PIN — try again');
+  }
+}
+window.checkAdminPin = checkAdminPin;
+
+function adminLogout() {
+  document.getElementById('lock-screen').style.display = 'flex';
+  document.getElementById('admin-app').style.display = 'none';
+}
+window.adminLogout = adminLogout;
+
+// ---- TABS ----
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'citizens')   loadCitizens();
+  if (name === 'responders') loadResponders();
+  if (name === 'logs')       loadLogs();
+}
+window.switchTab = switchTab;
+
+// ---- LOAD CITIZENS ----
+async function loadCitizens() {
+  const list = document.getElementById('citizens-list');
+  list.innerHTML = '<div class="spinner"></div>';
+  try {
+    const citizens = await getAllCitizens();
+    if (citizens.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:var(--gray-mid);padding:24px;font-size:13px;">No citizens registered yet. Click + Add citizen to start.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    citizens.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'citizen-card';
+      const hasPhoto = c.photo_url ? `<img src="${c.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : c.initials || c.full_name?.substring(0,2).toUpperCase() || '?';
+      const hasFP = c.fingerprint ? '<span class="tag tag-green" style="font-size:9px;">FP enrolled</span>' : '<span class="tag tag-gold" style="font-size:9px;">No FP</span>';
+      card.innerHTML = `
+        <div class="citizen-card-header">
+          <div class="avatar lg">${hasPhoto}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;">${c.full_name || '—'}</div>
+            <div style="font-size:11px;color:var(--gray-mid);">ID: ${c.id_number || c.id} &nbsp;|&nbsp; ${c.phone || '—'}</div>
+            <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${hasFP}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">
+            <button class="btn-sm" style="background:var(--blue);color:white;" onclick="openEditCitizen('${c.id_number || c.id}')">Edit</button>
+            <button class="enrol-btn ${c.fingerprint ? 'done' : ''}" onclick="openFPEnrol('${c.id_number || c.id}', '${c.full_name}')">
+              ${c.fingerprint ? '✓ Re-enrol FP' : '+ Enrol FP'}
+            </button>
+            <button class="btn-sm" style="background:var(--red-lt);color:var(--red-dark);" onclick="confirmDelete('${c.id_number || c.id}', '${c.full_name}')">Delete</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:12px;font-size:11px;color:var(--gray-mid);">
+          <span>Blood: <strong>${c.blood_type || '—'}</strong></span>
+          <span>Allergy: <strong>${c.allergies || '—'}</strong></span>
+          <span>Condition: <strong>${c.medical_condition || '—'}</strong></span>
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="color:red;font-size:13px;">Error loading citizens: ' + e.message + '</div>';
+  }
+}
+window.loadCitizens = loadCitizens;
+
+// ---- ADD CITIZEN ----
+function openAddCitizen() {
+  editingID = null;
+  photoFile = null;
+  document.getElementById('citizen-modal-title').textContent = 'Add citizen';
+  ['c-id','c-name','c-phone','c-allergy','c-condition'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('c-blood').value = '';
+  document.getElementById('photo-preview').innerHTML = '<span style="font-size:28px;">📷</span>';
+  document.getElementById('c-id').readOnly = false;
+  openModal('citizen-modal');
+}
+window.openAddCitizen = openAddCitizen;
+
+async function openEditCitizen(idNumber) {
+  editingID = idNumber;
+  photoFile = null;
+  const c = await getCitizen(idNumber);
+  if (!c) return;
+  document.getElementById('citizen-modal-title').textContent = 'Edit citizen';
+  document.getElementById('c-id').value   = c.id_number || c.id;
+  document.getElementById('c-id').readOnly = true;
+  document.getElementById('c-name').value     = c.full_name || '';
+  document.getElementById('c-phone').value    = c.phone || '';
+  document.getElementById('c-blood').value    = c.blood_type || '';
+  document.getElementById('c-allergy').value  = c.allergies || '';
+  document.getElementById('c-condition').value= c.medical_condition || '';
+  if (c.photo_url) {
+    document.getElementById('photo-preview').innerHTML = `<img src="${c.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    document.getElementById('photo-preview').innerHTML = '<span style="font-size:28px;">📷</span>';
+  }
+  openModal('citizen-modal');
+}
+window.openEditCitizen = openEditCitizen;
+
+async function saveCitizenForm() {
+  const idNum    = document.getElementById('c-id').value.trim();
+  const fullName = document.getElementById('c-name').value.trim();
+  const phone    = document.getElementById('c-phone').value.trim();
+
+  if (!idNum || idNum.length !== 13) { showToast('SA ID must be 13 digits'); return; }
+  if (!fullName)  { showToast('Full name is required'); return; }
+  if (!phone)     { showToast('Phone number is required'); return; }
+
+  const initials = fullName.split(' ').map(w => w[0]).join('').substring(0,2).toUpperCase();
+
+  let photoUrl = null;
+  if (photoFile) {
+    showToast('Uploading photo...');
+    try { photoUrl = await uploadPhoto(idNum, photoFile); } catch(e) { console.warn('Photo upload failed', e); }
+  }
+
+  const data = {
+    id_number:         idNum,
+    full_name:         fullName,
+    initials:          initials,
+    phone:             phone,
+    blood_type:        document.getElementById('c-blood').value || null,
+    allergies:         document.getElementById('c-allergy').value || null,
+    medical_condition: document.getElementById('c-condition').value || null,
+  };
+  if (photoUrl) data.photo_url = photoUrl;
+
+  try {
+    if (editingID) {
+      await updateCitizen(editingID, data);
+      showToast('Citizen updated ✓');
+    } else {
+      // Check if ID already exists
+      const existing = await getCitizen(idNum);
+      if (existing) { showToast('ID ' + idNum + ' already registered'); return; }
+      await saveCitizen(data);
+      showToast('Citizen added ✓');
+    }
+    closeModal('citizen-modal');
+    loadCitizens();
+  } catch(e) {
+    showToast('Error: ' + e.message);
+  }
+}
+window.saveCitizenForm = saveCitizenForm;
+
+function previewPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  photoFile = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('photo-preview').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  };
+  reader.readAsDataURL(photoFile);
+}
+window.previewPhoto = previewPhoto;
+
+async function confirmDelete(idNumber, name) {
+  if (!confirm(`Delete ${name}? This cannot be undone.`)) return;
+  await deleteCitizen(idNumber);
+  showToast('Citizen deleted');
+  loadCitizens();
+}
+window.confirmDelete = confirmDelete;
+
+// ---- FINGERPRINT ENROLMENT ----
+function openFPEnrol(idNumber, name) {
+  fpCitizenID = idNumber;
+  fpActive = false;
+  document.getElementById('fp-citizen-name').textContent = 'Citizen: ' + name;
+  document.getElementById('fp-icon-group').style.display = 'flex';
+  document.getElementById('fp-icon-group').style.flexDirection = 'column';
+  document.getElementById('fp-icon-group').style.alignItems = 'center';
+  document.getElementById('fp-icon-group').style.gap = '10px';
+  document.getElementById('fp-video').style.display = 'none';
+  document.getElementById('fp-scan-line').style.display = 'none';
+  document.getElementById('fp-prog').style.display = 'none';
+  document.getElementById('fp-fill').style.width = '0%';
+  document.getElementById('fp-status-text').textContent = '';
+  document.getElementById('fp-result').style.display = 'none';
+  openModal('fp-modal');
+}
+window.openFPEnrol = openFPEnrol;
+
+async function startFPEnrol() {
+  if (fpActive) return;
+  fpActive = true;
+  try {
+    fpStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('fp-video');
+    video.srcObject = fpStream;
+    video.style.display = 'block';
+    document.getElementById('fp-icon-group').style.display = 'none';
+    document.getElementById('fp-scan-line').style.display = 'block';
+    document.getElementById('fp-status-text').textContent = 'Hold finger steady in front of camera...';
+    setTimeout(() => runFPCapture(), 2000);
+  } catch(e) {
+    document.getElementById('fp-status-text').textContent = 'Camera unavailable — simulating enrolment';
+    setTimeout(() => runFPCapture(), 500);
+  }
+}
+window.startFPEnrol = startFPEnrol;
+
+async function runFPCapture() {
+  const steps = ['Capturing image...','Enhancing ridges...','Extracting minutiae...','Building template...','Saving to database...'];
+  const prog = document.getElementById('fp-prog');
+  const fill = document.getElementById('fp-fill');
+  prog.style.display = 'block';
+  let i = 0;
+  const iv = setInterval(async () => {
+    if (i < steps.length) {
+      document.getElementById('fp-status-text').textContent = steps[i];
+      fill.style.width = ((i+1)/steps.length*100)+'%';
+      i++;
+    } else {
+      clearInterval(iv);
+      stopFPCamera();
+      // Generate a simulated fingerprint descriptor (64 random floats)
+      // In production this comes from a real fingerprint SDK
+      const descriptor = Array.from({ length: 64 }, () => Math.random());
+      try {
+        await saveFingerprint(fpCitizenID, descriptor);
+        document.getElementById('fp-result').style.display = 'block';
+        document.getElementById('fp-status-text').textContent = '';
+        showToast('Fingerprint enrolled ✓');
+        loadCitizens();
+      } catch(e) {
+        document.getElementById('fp-status-text').textContent = 'Error saving: ' + e.message;
+      }
+    }
+  }, 700);
+}
+
+function stopFPCamera() {
+  if (fpStream) { fpStream.getTracks().forEach(t => t.stop()); fpStream = null; }
+  document.getElementById('fp-video').style.display = 'none';
+  document.getElementById('fp-scan-line').style.display = 'none';
+}
+
+function closeFPModal() {
+  stopFPCamera();
+  fpActive = false;
+  closeModal('fp-modal');
+}
+window.closeFPModal = closeFPModal;
+
+// ---- RESPONDERS ----
+async function loadResponders() {
+  const list = document.getElementById('responders-list');
+  list.innerHTML = '<div class="spinner"></div>';
+  try {
+    const snap = await getDocs(collection(db, 'responders'));
+    if (snap.empty) {
+      list.innerHTML = '<div style="text-align:center;color:var(--gray-mid);padding:24px;font-size:13px;">No responders added yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    snap.docs.forEach(d => {
+      const r = d.data();
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="avatar" style="background:var(--purple-lt);color:var(--purple);">${(r.full_name||'?').substring(0,2).toUpperCase()}</div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;">${r.full_name||'—'}</div>
+            <div style="font-size:11px;color:var(--gray-mid);">${r.role||'—'} &nbsp;|&nbsp; ${d.id}</div>
+            <div style="font-size:11px;color:var(--gray-mid);">${r.phone||'—'}</div>
+          </div>
+          <button class="btn-sm" style="background:var(--red-lt);color:var(--red-dark);" onclick="deleteResponderEntry('${d.id}', '${r.full_name}')">Remove</button>
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="color:red;font-size:13px;">Error: ' + e.message + '</div>';
+  }
+}
+window.loadResponders = loadResponders;
+
+function openAddResponder() { openModal('responder-modal'); }
+window.openAddResponder = openAddResponder;
+
+async function saveResponderForm() {
+  const emp   = document.getElementById('r-empnum').value.trim();
+  const name  = document.getElementById('r-name').value.trim();
+  const role  = document.getElementById('r-role').value;
+  const phone = document.getElementById('r-phone').value.trim();
+  if (!emp || !name) { showToast('Employee number and name required'); return; }
+  await saveResponder({ employee_number:emp, full_name:name, role, phone });
+  showToast('Responder added ✓');
+  closeModal('responder-modal');
+  loadResponders();
+}
+window.saveResponderForm = saveResponderForm;
+
+async function deleteResponderEntry(id, name) {
+  if (!confirm('Remove responder ' + name + '?')) return;
+  const { deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  await deleteDoc(doc(db, 'responders', id));
+  showToast('Responder removed');
+  loadResponders();
+}
+window.deleteResponderEntry = deleteResponderEntry;
+
+// ---- LOGS ----
+async function loadLogs() {
+  const list = document.getElementById('logs-list');
+  list.innerHTML = '<div class="spinner"></div>';
+  try {
+    const q = query(collection(db, 'scan_logs'), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      list.innerHTML = '<div style="text-align:center;color:var(--gray-mid);padding:24px;font-size:13px;">No scans recorded yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    snap.docs.forEach(d => {
+      const log = d.data();
+      const ts = log.timestamp?.toDate ? log.timestamp.toDate().toLocaleString('en-ZA') : '—';
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.fontSize = '12px';
+      card.innerHTML = `
+        <div style="font-weight:700;margin-bottom:4px;">${log.citizen_name || '—'} &nbsp;<span class="tag tag-blue">${log.match_pct || '—'}%</span></div>
+        <div style="color:var(--gray-mid);line-height:1.8;">
+          Responder: ${log.responder_name||'—'} (${log.responder_role||'—'})<br/>
+          Time: ${ts}<br/>
+          GPS: ${log.gps||'—'}<br/>
+          Contacts notified: ${log.contacts_notified||0}
+        </div>`;
+      list.appendChild(card);
+    });
+  } catch(e) {
+    list.innerHTML = '<div style="color:red;">Error: ' + e.message + '</div>';
+  }
+}
+window.loadLogs = loadLogs;
+
+// ---- MODAL HELPERS ----
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+window.openModal  = openModal;
+window.closeModal = closeModal;
+
+// Close modal when clicking overlay
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// ---- TOAST ----
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+window.showToast = showToast;
+
+// Allow Enter key on PIN field
+document.getElementById('admin-pin').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkAdminPin();
+});
+</script>
+</body>
+</html>

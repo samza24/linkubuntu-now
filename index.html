@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>LinkUbuntu — Emergency Contact Web</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <style>
+    .hero { background:var(--blue); color:white; padding:48px 20px 40px; text-align:center; }
+    .hero-logo { font-size:34px; font-weight:700; letter-spacing:2px; margin-bottom:4px; }
+    .hero-sub { font-size:14px; opacity:.75; font-style:italic; margin-bottom:4px; }
+    .hero-trans { font-size:12px; opacity:.6; margin-bottom:20px; }
+    .hero-desc { font-size:15px; opacity:.9; line-height:1.7; max-width:360px; margin:0 auto 28px; }
+    .hero-btns { display:flex; flex-direction:column; gap:10px; max-width:300px; margin:0 auto; }
+    .hero-btn { display:block; padding:14px; border-radius:var(--radius); font-size:14px; font-weight:700; text-decoration:none; font-family:'Ubuntu',sans-serif; }
+    .hero-btn.citizen   { background:white; color:var(--blue); }
+    .hero-btn.responder { background:var(--purple); color:white; }
+    .hero-btn.admin     { background:var(--red-admin); color:white; font-size:12px; padding:10px; }
+    .stat-row { display:flex; gap:10px; padding:20px 16px 0; max-width:480px; margin:0 auto; }
+    .stat-card { flex:1; background:white; border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 10px; text-align:center; box-shadow:var(--shadow); }
+    .stat-num { font-size:22px; font-weight:700; color:var(--red-dark); line-height:1; }
+    .stat-lbl { font-size:10px; color:var(--gray-mid); margin-top:6px; line-height:1.4; font-weight:500; }
+    .section { padding:20px 16px; max-width:480px; margin:0 auto; }
+    .section h2 { font-size:18px; font-weight:700; margin-bottom:14px; }
+    .prob-card { background:var(--red-lt); border:1px solid #FFCDD2; border-radius:var(--radius-lg); padding:14px; margin-bottom:10px; font-size:13px; line-height:1.7; }
+    .step-card { background:white; border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px; margin-bottom:10px; display:flex; gap:12px; box-shadow:var(--shadow); }
+    .step-num { width:34px; height:34px; border-radius:50%; background:var(--blue); color:white; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; flex-shrink:0; }
+    .step-text h3 { font-size:14px; font-weight:700; margin-bottom:5px; }
+    .step-text p  { font-size:12px; color:var(--gray-mid); line-height:1.6; }
+    .footer { background:var(--blue); color:white; padding:28px 16px; text-align:center; font-size:12px; line-height:1.9; margin-top:10px; }
+    .footer strong { display:block; font-size:16px; font-weight:700; margin-bottom:6px; letter-spacing:1px; }
+  </style>
+</head>
+<body>
+<div class="demo-banner">VUT Hackathon 2025 — LinkUbuntu Demo — Theme: Innovation for a Better Tomorrow</div>
+
+<div class="hero">
+  <div class="hero-logo">LinkUbuntu</div>
+  <div class="hero-sub">"Umuntu ngumuntu ngabantu"</div>
+  <div class="hero-trans">A person is a person through other people</div>
+  <p class="hero-desc">South Africa's emergency contact web — connecting families when seconds count. No more families waiting days to find out what happened.</p>
+  <div class="hero-btns">
+    <a href="citizen/"   class="hero-btn citizen">Citizen app — my emergency web</a>
+    <a href="responder/" class="hero-btn responder">Responder app — scan at scene</a>
+    <a href="admin/"     class="hero-btn admin">Admin panel — manage citizens</a>
+  </div>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card"><div class="stat-num">3,186</div><div class="stat-lbl">Unclaimed bodies in SA mortuaries (Aug 2024)</div></div>
+  <div class="stat-card"><div class="stat-num">24h+</div><div class="stat-lbl">Average time for family notification</div></div>
+  <div class="stat-card"><div class="stat-num">7 yrs</div><div class="stat-lbl">Longest search for a loved one already buried</div></div>
+</div>
+
+<div class="section">
+  <h2>The problem</h2>
+  <div class="prob-card">Every day in South Africa, people die or are critically injured in road accidents. Their families wait hours, days — sometimes years — to find out what happened. Bodies are buried as paupers because no one could identify them.</div>
+  <div class="prob-card" style="background:var(--gold-lt);border-color:#FFE082;">The current system fails because it relies on one outdated phone number. When that number is dead, the family connection is completely broken.</div>
+</div>
+
+<div class="section">
+  <h2>How LinkUbuntu works</h2>
+  <div class="step-card"><div class="step-num">1</div><div class="step-text"><h3>Citizens build their emergency web</h3><p>Register with your SA ID. Add the phone numbers of people who must be called if something happens to you. Update anytime.</p></div></div>
+  <div class="step-card"><div class="step-num">2</div><div class="step-text"><h3>Responder scans at the scene</h3><p>A SAPS officer, paramedic, or traffic officer scans the victim's fingerprint. The system matches against the database and returns their profile.</p></div></div>
+  <div class="step-card"><div class="step-num">3</div><div class="step-text"><h3>Family notified instantly</h3><p>Real SMS sent to all emergency contacts in priority order. Responder can also call directly from the app. Family knows within minutes — not days.</p></div></div>
+</div>
+
+<div class="section">
+  <h2>Try the demo</h2>
+  <a href="citizen/"   class="btn btn-blue" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px;">Open citizen app</a>
+  <a href="responder/" class="btn btn-blue" style="display:block;text-decoration:none;text-align:center;margin-bottom:10px;background:var(--purple);">Open responder app</a>
+  <a href="admin/"     class="btn btn-blue" style="display:block;text-decoration:none;text-align:center;background:var(--red-admin);">Admin panel (PIN: 123456)</a>
+</div>
+
+<div class="footer">
+  <strong>LinkUbuntu</strong>
+  Built for VUT Hackathon 2025 · Vereeniging, South Africa<br/>
+  Roadmap: Home Affairs DHA integration · Africa's Talking SMS · Identy.io fingerprint SDK<br/>
+  <em>"I am because we are"</em>
+</div>
+</body>
+</html>
