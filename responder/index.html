@@ -1,529 +1,195 @@
 <!DOCTYPE html>
-<!--
-  FILE: responder/index.html
-  PURPOSE: Responder app for SAPS, EMS, Traffic Officers.
-  - Login with employee number (verified against Firebase)
-  - Camera fingerprint scan → matches against enrolled citizens
-  - Shows full profile + all contacts with phone numbers
-  - Write custom message → send real SMS to all contacts
-  - Tap any number to call directly
-  - Full audit log saved to Firebase
--->
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>LinkUbuntu — Responder</title>
   <link rel="stylesheet" href="../css/style.css"/>
   <style>
-    .topbar { background: var(--purple); }
-    .btn-blue { background: var(--purple); }
-    .btn-blue:hover { background: var(--purple-mid); }
-    .field-input:focus { border-color: var(--purple); }
-    .contact-action-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
-    .contact-action-row:last-child { border-bottom:none; }
-    .sms-sent-badge  { font-size:10px; background:var(--green-lt); color:var(--green); padding:2px 8px; border-radius:10px; font-weight:700; }
-    .sms-fail-badge  { font-size:10px; background:var(--red-lt); color:var(--red-dark); padding:2px 8px; border-radius:10px; font-weight:700; }
+    .topbar{background:var(--purple);}
+    .btn-blue{background:var(--purple);} .btn-blue:hover{background:var(--purple-mid);}
+    .field-input:focus{border-color:var(--purple);}
   </style>
 </head>
 <body>
 <div id="toast"></div>
 <div class="demo-banner">RESPONDER APP — Authorised personnel only</div>
 
-<!-- ===== SCREEN: RESPONDER LOGIN ===== -->
+<!-- LOGIN -->
 <div id="r-login" class="screen active">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">LinkUbuntu Responder</div>
-      <div class="topbar-sub">Secure access — all scans logged</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title">LinkUbuntu Responder</div><div class="topbar-sub">Secure — all scans logged</div></div></div>
   <div class="content">
-    <div style="text-align:center;padding:20px 0 24px;">
-      <div style="font-size:40px;margin-bottom:10px;">🔒</div>
-      <div style="font-size:18px;font-weight:700;color:var(--purple);">Responder sign in</div>
-      <div style="font-size:12px;color:var(--gray-mid);margin-top:6px;line-height:1.6;">Every scan is permanently recorded with your name, GPS, and timestamp</div>
-    </div>
-    <div class="field-label">Employee / badge number</div>
-    <input class="field-input" id="r-emp" placeholder="e.g. SAPS-20241891"/>
+    <div style="text-align:center;padding:20px 0 24px;"><div style="font-size:40px;margin-bottom:10px;">🔒</div><div style="font-size:18px;font-weight:700;color:var(--purple);">Responder sign in</div><div style="font-size:12px;color:var(--gray-mid);margin-top:6px;">Every scan is permanently recorded</div></div>
+    <div class="field-label">Employee / badge number</div><input class="field-input" id="r-emp" placeholder="e.g. SAPS-20241891"/>
     <div class="field-label">Role</div>
-    <select class="field-input" id="r-role-sel">
-      <option>SAPS Officer</option>
-      <option>Paramedic / EMS</option>
-      <option>Traffic Officer</option>
-      <option>Forensic Pathologist</option>
-    </select>
-    <div class="field-label">Your contact number (optional)</div>
-    <input class="field-input" id="r-contact-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
-    <button class="btn btn-blue" onclick="responderLogin()">Sign in</button>
+    <select class="field-input" id="r-role"><option>SAPS Officer</option><option>Paramedic / EMS</option><option>Traffic Officer</option><option>Forensic Pathologist</option></select>
+    <div class="field-label">Your contact number (optional)</div><input class="field-input" id="r-ph" placeholder="e.g. 0821234567" inputmode="tel"/>
+    <button class="btn btn-blue" onclick="doLogin()">Sign in</button>
     <div class="divider"></div>
-    <div class="hint">Authorised responders are registered in the admin panel. All actions are audited.</div>
-    <div style="margin-top:16px;text-align:center;">
-      <a href="../" style="font-size:12px;color:var(--gray-mid);">← Back to home</a>
-    </div>
+    <div class="hint">Authorised responders are managed in the admin panel.</div>
+    <div style="margin-top:16px;text-align:center;"><a href="../" style="font-size:12px;color:var(--gray-mid);">← Back</a></div>
   </div>
 </div>
 
-<!-- ===== SCREEN: SCAN ===== -->
+<!-- SCAN -->
 <div id="r-scan" class="screen">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">Scan fingerprint</div>
-      <div class="topbar-sub" id="r-topbar-sub">Officer</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title">Scan fingerprint</div><div class="topbar-sub" id="r-sub">Officer</div></div></div>
   <div class="content">
-
-    <!-- GPS card -->
-    <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div style="font-size:22px;">📍</div>
-      <div>
-        <div style="font-size:12px;font-weight:700;">Location logged</div>
-        <div style="font-size:11px;color:var(--gray-mid);" id="r-gps">Getting GPS...</div>
-      </div>
+    <div class="card" style="display:flex;align-items:center;gap:12px;margin-bottom:12px;"><div style="font-size:22px;">📍</div><div><div style="font-size:12px;font-weight:700;">Location logged</div><div style="font-size:11px;color:var(--gray-mid);" id="r-gps">Getting GPS...</div></div></div>
+    <div class="scan-zone" id="fp-btn" onclick="doScan()">
+      <div class="scan-ring"><div class="scan-inner">👆</div></div>
+      <div style="color:#90CAF9;font-size:14px;font-weight:500;" id="fp-label">Tap to scan fingerprint</div>
+      <div style="color:rgba(144,202,249,.6);font-size:11px;">Uses device fingerprint sensor (WebAuthn)</div>
     </div>
-
-    <!-- Scan zone -->
-    <div class="scan-zone" id="r-scan-zone" onclick="activateScan()">
-      <div class="scan-line" id="r-scan-line"></div>
-      <video id="r-video" autoplay playsinline muted style="display:none;width:100%;height:180px;object-fit:cover;border-radius:8px;"></video>
-      <div id="r-scan-icons">
-        <div class="scan-ring"><div class="scan-inner">👆</div></div>
-        <div class="scan-label" id="r-scan-label">Tap to activate camera</div>
-      </div>
-      <div class="scan-prog" id="r-scan-prog" style="display:none;width:80%;">
-        <div class="scan-fill" id="r-scan-fill" style="width:0%;"></div>
-      </div>
+    <div id="r-status" style="font-size:12px;color:var(--gray-mid);text-align:center;min-height:20px;margin:10px 0;"></div>
+    <div id="r-hint" style="background:var(--purple-lt);border-radius:8px;padding:12px;font-size:12px;color:var(--purple);line-height:1.7;margin-bottom:12px;">
+      <strong>How to scan:</strong> Tap above. Device fingerprint sensor activates. Place victim's finger on sensor. System identifies them from MySQL database.
     </div>
-
-    <div id="r-scan-status" style="font-size:12px;color:var(--gray-mid);text-align:center;min-height:20px;margin:8px 0;"></div>
-
-    <div id="r-scan-hint" style="background:var(--purple-lt);border-radius:8px;padding:12px;font-size:12px;color:var(--purple);line-height:1.7;margin-bottom:12px;">
-      <strong>How to scan:</strong> Tap the area above. The camera will activate. Hold the victim's finger steady in front of the camera. The system will attempt to match against the database.
-    </div>
-
-    <button class="btn-outline" onclick="responderLogout()">Sign out</button>
+    <button class="btn-outline" onclick="doLogout()">Sign out</button>
   </div>
 </div>
 
-<!-- ===== SCREEN: MATCH RESULT ===== -->
+<!-- RESULT -->
 <div id="r-result" class="screen">
-  <div class="topbar">
-    <button class="back-btn" onclick="resetScan()">← New scan</button>
-    <div style="flex:1;margin-left:10px;">
-      <div class="topbar-title">Match found</div>
-    </div>
-  </div>
+  <div class="topbar"><button class="back-btn" onclick="doReset()">← New scan</button><div style="flex:1;margin-left:10px;"><div class="topbar-title">Match found</div></div></div>
   <div class="content">
-
-    <!-- Match banner -->
-    <div class="match-banner">
-      <div style="font-size:26px;font-weight:700;color:var(--green);" id="r-match-pct">—%</div>
-      <div>
-        <div style="font-size:13px;font-weight:700;color:var(--green);">Match confirmed</div>
-        <div style="font-size:11px;color:#2E7D32;">Above threshold</div>
-      </div>
-      <span class="tag tag-green" style="margin-left:auto;">Identified</span>
-    </div>
-
-    <!-- Citizen profile -->
+    <div class="match-banner"><div style="font-size:24px;font-weight:700;color:var(--green);">✓</div><div><div style="font-size:13px;font-weight:700;color:var(--green);">Fingerprint matched</div><div style="font-size:11px;color:#2E7D32;">WebAuthn · MySQL database</div></div><span class="tag tag-green" style="margin-left:auto;">Identified</span></div>
     <div class="card">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
         <div class="avatar lg" id="r-av">?</div>
-        <div>
-          <div style="font-size:18px;font-weight:700;" id="r-citizen-name">—</div>
-          <div style="font-size:12px;color:var(--gray-mid);" id="r-citizen-id">—</div>
-          <div style="font-size:12px;color:var(--gray-mid);" id="r-citizen-phone">—</div>
-        </div>
+        <div><div style="font-size:18px;font-weight:700;" id="r-cname">—</div><div style="font-size:12px;color:var(--gray-mid);" id="r-cid">—</div><div style="font-size:12px;color:var(--gray-mid);" id="r-cph">—</div></div>
       </div>
-      <!-- Medical info — only shown if citizen filled it in -->
-      <div id="r-medical-row" style="display:none;border-top:1px solid var(--border);padding-top:10px;">
+      <div id="r-med" style="display:none;border-top:1px solid var(--border);padding-top:10px;">
         <div style="display:flex;gap:0;">
-          <div style="flex:1;text-align:center;">
-            <div style="font-size:10px;color:var(--gray-mid);">Blood type</div>
-            <div style="font-size:20px;font-weight:700;color:var(--blue);" id="r-blood">—</div>
-          </div>
+          <div style="flex:1;text-align:center;"><div style="font-size:10px;color:var(--gray-mid);">Blood</div><div style="font-size:20px;font-weight:700;color:var(--blue);" id="r-blood">—</div></div>
           <div style="width:1px;background:var(--border);"></div>
-          <div style="flex:1;text-align:center;padding:0 8px;">
-            <div style="font-size:10px;color:var(--gray-mid);">Allergy</div>
-            <div style="font-size:12px;font-weight:700;color:var(--red-dark);" id="r-allergy">—</div>
-          </div>
+          <div style="flex:1;text-align:center;padding:0 8px;"><div style="font-size:10px;color:var(--gray-mid);">Allergy</div><div style="font-size:12px;font-weight:700;color:var(--red-dark);" id="r-allergy">—</div></div>
           <div style="width:1px;background:var(--border);"></div>
-          <div style="flex:1;text-align:center;">
-            <div style="font-size:10px;color:var(--gray-mid);">Condition</div>
-            <div style="font-size:12px;font-weight:700;color:var(--gray-mid);" id="r-condition">—</div>
-          </div>
+          <div style="flex:1;text-align:center;"><div style="font-size:10px;color:var(--gray-mid);">Condition</div><div style="font-size:12px;font-weight:700;color:var(--gray-mid);" id="r-cond">—</div></div>
         </div>
       </div>
     </div>
-
-    <!-- Contacts section -->
     <div class="section-title">Emergency contacts</div>
-    <div id="r-contacts-list" style="margin-bottom:14px;"></div>
-
-    <!-- Notification section -->
+    <div id="r-contacts" style="margin-bottom:14px;"></div>
     <div class="card" style="background:#F9F0FF;border-color:var(--purple-lt);">
       <div style="font-size:13px;font-weight:700;color:var(--purple);margin-bottom:10px;">Notify all contacts</div>
-
       <div class="field-label">Your message (optional)</div>
-      <textarea class="field-input" id="r-message" placeholder="e.g. Please come to Charlotte Maxeke Hospital immediately. Accident on N1 near Midrand." rows="3"></textarea>
-
+      <textarea class="field-input" id="r-msg" placeholder="e.g. Please come to Charlotte Maxeke Hospital immediately. Accident on N1 near Midrand." rows="3"></textarea>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-blue" style="flex:2;" onclick="sendAllNotifications()">Send SMS to all contacts</button>
-        <button class="btn-outline" style="flex:1;margin-top:0;" onclick="show('r-scan')">New scan</button>
+        <button class="btn btn-blue" style="flex:2;" onclick="doNotify()">Send SMS to all contacts</button>
+        <button class="btn-outline" style="flex:1;margin-top:0;" onclick="doReset()">New scan</button>
       </div>
     </div>
-
-    <!-- Individual contact actions -->
-    <div class="section-title" style="margin-top:14px;">Call contacts individually</div>
-    <div id="r-call-list"></div>
-
+    <div class="section-title" style="margin-top:14px;">Call contacts directly</div>
+    <div id="r-calllist"></div>
   </div>
 </div>
 
-<!-- ===== SCREEN: NOTIFICATIONS SENT ===== -->
+<!-- NOTIFIED -->
 <div id="r-notified" class="screen">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">Notifications sent</div>
-      <div class="topbar-sub">Family alerted</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title">Notifications sent</div><div class="topbar-sub">Family alerted</div></div></div>
   <div class="content">
-    <div style="text-align:center;padding:20px 0 24px;">
-      <div style="width:70px;height:70px;border-radius:50%;background:var(--green-lt);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px;">✓</div>
-      <div style="font-size:18px;font-weight:700;color:var(--green);">Notifications sent</div>
-      <div style="font-size:12px;color:var(--gray-mid);margin-top:4px;" id="r-notify-time"></div>
-    </div>
-
-    <div id="r-notify-results"></div>
-
+    <div style="text-align:center;padding:20px 0 24px;"><div style="width:70px;height:70px;border-radius:50%;background:var(--green-lt);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:30px;">✓</div><div style="font-size:18px;font-weight:700;color:var(--green);">Notifications sent</div><div style="font-size:12px;color:var(--gray-mid);margin-top:4px;" id="r-time"></div></div>
+    <div id="r-results"></div>
     <div class="divider"></div>
-
-    <!-- Audit log -->
-    <div class="card" style="background:var(--purple-lt);border-color:#CE93D8;">
-      <div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;">Audit log saved</div>
-      <div style="font-size:11px;color:var(--gray-mid);line-height:1.8;white-space:pre-line;" id="r-audit-text"></div>
-    </div>
-
-    <button class="btn btn-blue" onclick="resetScan()" style="margin-top:12px;">New scan</button>
-    <button class="btn-outline" onclick="responderLogout()">Sign out</button>
+    <div class="card" style="background:var(--purple-lt);border-color:#CE93D8;"><div style="font-size:12px;font-weight:700;color:var(--purple);margin-bottom:6px;">Audit log saved to MySQL</div><div style="font-size:11px;color:var(--gray-mid);line-height:1.8;white-space:pre-line;" id="r-audit"></div></div>
+    <button class="btn btn-blue" onclick="doReset()" style="margin-top:12px;">New scan</button>
+    <button class="btn-outline" onclick="doLogout()">Sign out</button>
   </div>
 </div>
 
-<script type="module">
-import {
-  getResponder, getCitizensWithFingerprints, getContacts, logScan
-} from '../js/firebase-config.js';
-import { sendBulkSMS, sendEmergencyAlert, normalisePhone } from '../js/sms.js';
+<script src="../js/api.js"></script>
+<script>
+let resp={name:'',role:'',phone:''}, gps='-26.2041, 28.0473', matchedC=null, matchedCts=[];
 
-// ---- STATE ----
-let responder     = { name:'', role:'', phone:'' };
-let gpsCoords     = '-26.2041, 28.0473';
-let scanActive    = false;
-let cameraStream  = null;
-let matchedCitizen = null;
-let matchedContacts = [];
-
-// ---- SCREEN SWITCHER ----
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0,0);
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function doLogin(){
+    const emp=document.getElementById('r-emp').value.trim();
+    if(!emp){showToast('Enter employee number','error');return;}
+    resp={name:emp,role:document.getElementById('r-role').value,phone:document.getElementById('r-ph').value.trim()};
+    document.getElementById('r-sub').textContent=resp.role+' · '+emp;
+    getGPS(); show('r-scan');
 }
-window.show = show;
-
-// ---- LOGIN ----
-async function responderLogin() {
-  const emp   = document.getElementById('r-emp').value.trim();
-  const role  = document.getElementById('r-role-sel').value;
-  const phone = document.getElementById('r-contact-phone').value.trim();
-
-  if (!emp) { showToast('Enter your employee number'); return; }
-
-  responder = { name: emp, role, phone };
-  document.getElementById('r-topbar-sub').textContent = role + ' · ' + emp;
-
-  getGPS();
-  show('r-scan');
+function getGPS(){
+    if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>{gps=p.coords.latitude.toFixed(4)+', '+p.coords.longitude.toFixed(4);document.getElementById('r-gps').textContent=gps;},()=>{document.getElementById('r-gps').textContent=gps+' (demo)';});
+    else document.getElementById('r-gps').textContent=gps;
 }
-window.responderLogin = responderLogin;
-
-function responderLogout() {
-  resetScanState();
-  show('r-login');
-}
-window.responderLogout = responderLogout;
-
-// ---- GPS ----
-function getGPS() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        gpsCoords = pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
-        document.getElementById('r-gps').textContent = gpsCoords;
-      },
-      () => {
-        gpsCoords = '-26.2041, 28.0473 (Johannesburg — demo)';
-        document.getElementById('r-gps').textContent = gpsCoords;
-      }
-    );
-  }
-}
-
-// ---- SCAN ----
-async function activateScan() {
-  if (scanActive) return;
-  scanActive = true;
-  document.getElementById('r-scan-hint').style.display = 'none';
-
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
-    const video = document.getElementById('r-video');
-    video.srcObject = cameraStream;
-    video.style.display = 'block';
-    document.getElementById('r-scan-icons').style.display = 'none';
-    document.getElementById('r-scan-line').style.display = 'block';
-    document.getElementById('r-scan-status').textContent = 'Camera active — hold finger steady';
-    setTimeout(runScanSteps, 2000);
-  } catch(e) {
-    document.getElementById('r-scan-status').textContent = 'Camera unavailable — running simulation';
-    runScanSteps();
-  }
-}
-window.activateScan = activateScan;
-
-document.getElementById('r-scan-zone').addEventListener('click', activateScan);
-
-async function runScanSteps() {
-  const steps = [
-    'Capturing fingerprint image...',
-    'Enhancing ridge patterns...',
-    'Extracting minutiae...',
-    'Searching database...',
-    'Calculating match scores...',
-    'Match found!'
-  ];
-  document.getElementById('r-scan-prog').style.display = 'block';
-  let i = 0;
-  const iv = setInterval(async () => {
-    if (i < steps.length) {
-      document.getElementById('r-scan-status').textContent = steps[i];
-      document.getElementById('r-scan-fill').style.width = ((i+1)/steps.length*100) + '%';
-      i++;
-    } else {
-      clearInterval(iv);
-      stopCamera();
-      await findMatch();
+async function doScan(){
+    document.getElementById('fp-label').textContent='Waiting for fingerprint...';
+    document.getElementById('r-status').textContent='Place finger on device sensor when prompted';
+    document.getElementById('r-hint').style.display='none';
+    try{
+        const r=await authenticateFingerprint();
+        if(r.success&&r.match){matchedC=r.citizen;matchedCts=r.contacts;showResult();show('r-result');}
+        else{document.getElementById('fp-label').textContent='Not matched — tap to retry';document.getElementById('r-status').textContent='Fingerprint not found in database';document.getElementById('r-hint').style.display='block';showToast('Not recognised','error');}
+    }catch(e){
+        document.getElementById('fp-label').textContent='Tap to try again';
+        document.getElementById('r-status').textContent='Error: '+e.message;
+        document.getElementById('r-hint').style.display='block';
+        showToast(e.message,'error');
     }
-  }, 700);
 }
-
-function stopCamera() {
-  if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
-  document.getElementById('r-video').style.display = 'none';
-  document.getElementById('r-scan-line').style.display = 'none';
-}
-
-// Find the best matching citizen from database
-async function findMatch() {
-  showToast('Matching against database...');
-  try {
-    const citizens = await getCitizensWithFingerprints();
-    if (citizens.length === 0) {
-      showToast('No enrolled fingerprints in database. Enrol citizens in admin panel first.');
-      resetScanState();
-      return;
+function showResult(){
+    const c=matchedC;
+    const av=document.getElementById('r-av');
+    if(c.photo_url) av.innerHTML=`<img src="${c.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+    else av.textContent=c.initials||(c.full_name||'?').substring(0,2).toUpperCase();
+    document.getElementById('r-cname').textContent=c.full_name||'Unknown';
+    document.getElementById('r-cid').textContent='ID: '+c.id_number;
+    document.getElementById('r-cph').textContent='Phone: '+(c.phone||'—');
+    if(c.blood_type||c.allergies||c.medical_condition){
+        document.getElementById('r-med').style.display='block';
+        document.getElementById('r-blood').textContent=c.blood_type||'—';
+        document.getElementById('r-allergy').textContent=c.allergies||'—';
+        document.getElementById('r-cond').textContent=c.medical_condition||'—';
     }
-    // For demo: pick a random enrolled citizen as the match
-    // In production: compare descriptor vectors using cosine similarity
-    matchedCitizen = citizens[Math.floor(Math.random() * citizens.length)];
-    matchedContacts = await getContacts(matchedCitizen.id_number || matchedCitizen.id);
-
-    displayMatchResult();
-    show('r-result');
-  } catch(e) {
-    showToast('Database error: ' + e.message);
-    resetScanState();
-  }
+    const ct=document.getElementById('r-contacts'), cl=document.getElementById('r-calllist');
+    ct.innerHTML=''; cl.innerHTML='';
+    if(!matchedCts.length){ct.innerHTML='<div class="hint">No emergency contacts registered.</div>';return;}
+    matchedCts.sort((a,b)=>(a.priority||3)-(b.priority||3));
+    const pc={1:'var(--blue)',2:'var(--green)',3:'var(--gold)'};
+    matchedCts.forEach(x=>{
+        const row=document.createElement('div'); row.className='contact-row';
+        row.innerHTML=`<div class="pri-dot" style="background:${pc[x.priority]||'#9E9E9E'};"></div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">${x.name}</div><div style="font-size:11px;color:var(--gray-mid);">${x.relationship} · ${x.phone}</div></div><span class="tag tag-gold">Pending</span>`;
+        ct.appendChild(row);
+        const cr=document.createElement('div'); cr.className='contact-row';
+        cr.innerHTML=`<div class="pri-dot" style="background:${pc[x.priority]||'#9E9E9E'};"></div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${x.name}</div><div style="font-size:11px;color:var(--gray-mid);">${x.phone}</div></div><a href="tel:${x.phone}" class="call-btn" style="text-decoration:none;">📞 Call</a><a href="sms:${x.phone}?body=EMERGENCY: ${c.full_name} has been in an accident. Please respond immediately." class="sms-btn" style="text-decoration:none;">💬 SMS</a>`;
+        cl.appendChild(cr);
+    });
 }
-
-function displayMatchResult() {
-  const c = matchedCitizen;
-  const matchPct = Math.floor(Math.random() * 13) + 84;
-
-  document.getElementById('r-match-pct').textContent = matchPct + '%';
-
-  // Avatar
-  const av = document.getElementById('r-av');
-  if (c.photo_url) {
-    av.innerHTML = `<img src="${c.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
-  } else {
-    av.textContent = c.initials || (c.full_name||'?').substring(0,2).toUpperCase();
-  }
-
-  document.getElementById('r-citizen-name').textContent = c.full_name || 'Unknown';
-  document.getElementById('r-citizen-id').textContent   = 'ID: ' + (c.id_number || c.id);
-  document.getElementById('r-citizen-phone').textContent = 'Phone: ' + (c.phone || '—');
-
-  // Medical info — only show if citizen filled it in
-  const hasMedical = c.blood_type || c.allergies || c.medical_condition;
-  if (hasMedical) {
-    document.getElementById('r-medical-row').style.display = 'block';
-    document.getElementById('r-blood').textContent     = c.blood_type || '—';
-    document.getElementById('r-allergy').textContent   = c.allergies || '—';
-    document.getElementById('r-condition').textContent = c.medical_condition || '—';
-  } else {
-    document.getElementById('r-medical-row').style.display = 'none';
-  }
-
-  // Contacts list
-  const contactsList = document.getElementById('r-contacts-list');
-  const callList     = document.getElementById('r-call-list');
-  contactsList.innerHTML = '';
-  callList.innerHTML = '';
-
-  if (matchedContacts.length === 0) {
-    contactsList.innerHTML = '<div class="hint">No emergency contacts registered by this citizen.</div>';
-    return;
-  }
-
-  matchedContacts.sort((a,b) => (a.priority||3)-(b.priority||3));
-  const priColors = {1:'var(--blue)',2:'var(--green)',3:'var(--gold)'};
-
-  matchedContacts.forEach(contact => {
-    // SMS preview list
-    const row = document.createElement('div');
-    row.className = 'contact-row';
-    row.innerHTML = `
-      <div class="pri-dot" style="background:${priColors[contact.priority]||'#9E9E9E'};"></div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:700;">${contact.name}</div>
-        <div style="font-size:11px;color:var(--gray-mid);">${contact.relationship} &nbsp;·&nbsp; ${contact.phone}</div>
-      </div>
-      <span class="tag tag-gold">Pending</span>`;
-    contactsList.appendChild(row);
-
-    // Call list with action buttons
-    const callRow = document.createElement('div');
-    callRow.className = 'contact-action-row';
-    callRow.id = 'call-row-' + contact.id;
-    callRow.innerHTML = `
-      <div class="pri-dot" style="background:${priColors[contact.priority]||'#9E9E9E'};"></div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;">${contact.name}</div>
-        <div style="font-size:11px;color:var(--gray-mid);">${contact.phone}</div>
-      </div>
-      <a href="tel:${contact.phone}" class="call-btn" style="text-decoration:none;">📞 Call</a>
-      <a href="sms:${contact.phone}?body=EMERGENCY: ${c.full_name} has been in an accident. Please call immediately." class="sms-btn" style="text-decoration:none;">💬 SMS</a>`;
-    callList.appendChild(callRow);
-  });
+async function doNotify(){
+    const msg=document.getElementById('r-msg').value.trim();
+    const cn=matchedC.full_name;
+    const fullMsg=`EMERGENCY — LinkUbuntu\n${cn} has been in an incident.\nLocation: ${gps}\nResponder: ${resp.name} (${resp.role})${resp.phone?'\nContact: '+resp.phone:''}${msg?'\n\nMessage: '+msg:''}`;
+    showToast('Sending notifications...');
+    const res=await sendBulkSMSAPI(matchedCts.map(c=>({name:c.name,phone:c.phone})),fullMsg);
+    const results=res.results||matchedCts.map(c=>({name:c.name,phone:c.phone,success:false,demo:true}));
+    await saveScanLog({responder_employee:resp.name,responder_name:resp.name,responder_role:resp.role,citizen_id:matchedC.id_number,citizen_name:cn,match_method:'WebAuthn',gps_location:gps,contacts_notified:results.filter(r=>r.success).length,message_sent:msg,sms_results:results});
+    showNotified(results);
 }
-
-// ---- SEND ALL NOTIFICATIONS ----
-async function sendAllNotifications() {
-  const customMsg = document.getElementById('r-message').value.trim();
-  const citizenName = matchedCitizen.full_name || 'Unknown';
-  const btn = document.querySelector('button[onclick="sendAllNotifications()"]');
-  btn.textContent = 'Sending...';
-  btn.disabled = true;
-
-  const results = await sendBulkSMS(
-    matchedContacts.map(c => ({ name: c.name, phone: c.phone })),
-    buildAlertMessage(citizenName, customMsg)
-  );
-
-  // Log to Firebase
-  await logScan({
-    responder_name:    responder.name,
-    responder_role:    responder.role,
-    responder_phone:   responder.phone,
-    citizen_id:        matchedCitizen.id_number || matchedCitizen.id,
-    citizen_name:      citizenName,
-    match_pct:         document.getElementById('r-match-pct').textContent,
-    gps:               gpsCoords,
-    contacts_notified: results.filter(r => r.success).length,
-    sms_results:       results,
-    message_sent:      customMsg || '(no custom message)'
-  });
-
-  displayNotificationResults(results);
-  show('r-notified');
+function showNotified(results){
+    const now=new Date();
+    document.getElementById('r-time').textContent='Sent at '+now.toLocaleTimeString('en-ZA')+' · '+now.toLocaleDateString('en-ZA');
+    const log=document.getElementById('r-results'); log.innerHTML='';
+    results.forEach((r,i)=>{
+        setTimeout(()=>{
+            const item=document.createElement('div'); item.className=r.success?'notif-item':'alert-item';
+            item.innerHTML=`<div style="font-size:20px;">${r.success?'✓':'!'}</div><div style="flex:1;"><div style="font-size:13px;font-weight:700;">${r.name}</div><div style="font-size:11px;color:${r.success?'var(--green)':'var(--red-dark)'};">${r.phone} — ${r.success?'SMS delivered':r.demo?'Demo — use call button below':'Failed — use call button'}</div></div>${r.success?'<span style="font-size:10px;background:var(--green-lt);color:var(--green);padding:2px 8px;border-radius:10px;font-weight:700;">Sent</span>':`<a href="tel:${r.phone}" class="call-btn" style="text-decoration:none;">📞 Call</a>`}`;
+            log.appendChild(item);
+        },i*400);
+    });
+    document.getElementById('r-audit').textContent=`Responder: ${resp.name} (${resp.role})\nCitizen: ${matchedC.full_name} · ${matchedC.id_number}\nTime: ${now.toLocaleString('en-ZA')}\nGPS: ${gps}\nMethod: WebAuthn biometric\nContacts: ${results.filter(r=>r.success).length}/${results.length} notified`;
+    show('r-notified');
 }
-window.sendAllNotifications = sendAllNotifications;
-
-function buildAlertMessage(citizenName, customMsg) {
-  let msg = `EMERGENCY — LinkUbuntu\n${citizenName} has been involved in an incident.\nLocation: ${gpsCoords}\nResponder: ${responder.name} (${responder.role})`;
-  if (responder.phone) msg += `\nContact: ${responder.phone}`;
-  if (customMsg) msg += `\n\nMessage: ${customMsg}`;
-  return msg;
+function doReset(){
+    matchedC=null; matchedCts=[];
+    document.getElementById('fp-label').textContent='Tap to scan fingerprint';
+    document.getElementById('r-status').textContent='';
+    document.getElementById('r-hint').style.display='block';
+    document.getElementById('r-msg').value='';
+    show('r-scan');
 }
-
-function displayNotificationResults(results) {
-  const now = new Date();
-  document.getElementById('r-notify-time').textContent =
-    'Sent at ' + now.toLocaleTimeString('en-ZA') + ' · ' + now.toLocaleDateString('en-ZA');
-
-  const log = document.getElementById('r-notify-results');
-  log.innerHTML = '';
-
-  results.forEach((r, i) => {
-    setTimeout(() => {
-      const item = document.createElement('div');
-      item.className = r.success ? 'notif-item' : 'alert-item';
-      item.innerHTML = `
-        <div style="font-size:20px;">${r.success ? '✓' : '!'}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:700;">${r.name}</div>
-          <div style="font-size:11px;color:${r.success ? 'var(--green)' : 'var(--red-dark)'};">
-            ${r.phone} — ${r.success ? 'SMS delivered' : 'SMS failed — use call button below'}
-          </div>
-        </div>
-        ${r.success
-          ? '<span class="sms-sent-badge">Sent</span>'
-          : `<a href="tel:${r.phone}" class="call-btn" style="text-decoration:none;">📞 Call</a>`}`;
-      log.appendChild(item);
-    }, i * 400);
-  });
-
-  // Audit text
-  const citizenName = matchedCitizen.full_name;
-  document.getElementById('r-audit-text').textContent =
-    `Responder: ${responder.name} (${responder.role})\n` +
-    `Citizen: ${citizenName} · ${matchedCitizen.id_number || matchedCitizen.id}\n` +
-    `Time: ${now.toLocaleString('en-ZA')}\n` +
-    `GPS: ${gpsCoords}\n` +
-    `Contacts notified: ${results.filter(r=>r.success).length}/${results.length}`;
-}
-
-// ---- RESET ----
-function resetScanState() {
-  scanActive = false;
-  stopCamera();
-  matchedCitizen  = null;
-  matchedContacts = [];
-  document.getElementById('r-scan-icons').style.display    = 'flex';
-  document.getElementById('r-scan-icons').style.flexDirection = 'column';
-  document.getElementById('r-scan-icons').style.alignItems = 'center';
-  document.getElementById('r-scan-icons').style.gap        = '12px';
-  document.getElementById('r-scan-label').textContent      = 'Tap to activate camera';
-  document.getElementById('r-scan-status').textContent     = '';
-  document.getElementById('r-scan-prog').style.display     = 'none';
-  document.getElementById('r-scan-fill').style.width       = '0%';
-  document.getElementById('r-scan-line').style.display     = 'none';
-  document.getElementById('r-scan-hint').style.display     = 'block';
-  document.getElementById('r-message').value               = '';
-}
-window.resetScan = function() { resetScanState(); show('r-scan'); };
-
-// ---- TOAST ----
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3500);
-}
-window.showToast = showToast;
+function doLogout(){doReset();show('r-login');}
 </script>
 </body>
 </html>

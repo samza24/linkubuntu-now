@@ -1,16 +1,8 @@
 <!DOCTYPE html>
-<!--
-  FILE: citizen/index.html
-  PURPOSE: Citizen-facing app.
-  - Register with SA ID + phone → real OTP SMS
-  - Upload profile picture
-  - Add/remove emergency contacts by phone number (no search)
-  - Update optional medical info
--->
 <html lang="en">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
   <title>LinkUbuntu — My Profile</title>
   <link rel="stylesheet" href="../css/style.css"/>
 </head>
@@ -18,464 +10,155 @@
 <div id="toast"></div>
 <div class="demo-banner">LinkUbuntu — Citizen App</div>
 
-<!-- ===== SCREEN: LOGIN / REGISTER ===== -->
+<!-- LOGIN -->
 <div id="s-login" class="screen active">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">LinkUbuntu</div>
-      <div class="topbar-sub">Emergency contact web</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title">LinkUbuntu</div><div class="topbar-sub">Emergency contact web</div></div></div>
   <div class="content">
-    <div style="text-align:center;padding:24px 0 20px;">
-      <div style="font-size:40px;margin-bottom:10px;">🔗</div>
-      <div style="font-size:20px;font-weight:700;color:var(--blue);">Sign in or register</div>
-      <div style="font-size:13px;color:var(--gray-mid);margin-top:6px;">Enter your SA ID number to continue</div>
-    </div>
+    <div style="text-align:center;padding:24px 0 20px;"><div style="font-size:40px;margin-bottom:10px;">🔗</div><div style="font-size:20px;font-weight:700;color:var(--blue);">Sign in</div><div style="font-size:12px;color:var(--gray-mid);margin-top:6px;">SA ID number and phone number</div></div>
     <div class="field-label">SA ID number (13 digits)</div>
-    <input class="field-input" id="login-id" placeholder="e.g. 9001015800082" maxlength="13" inputmode="numeric" oninput="onLoginIDInput(this.value)"/>
-    <div id="login-id-hint" style="font-size:12px;min-height:18px;margin-bottom:10px;"></div>
+    <input class="field-input" id="l-id" placeholder="e.g. 9001015800082" maxlength="13" inputmode="numeric" oninput="onID(this.value)"/>
+    <div id="l-hint" style="font-size:12px;min-height:18px;margin-bottom:8px;"></div>
     <div class="field-label">Phone number</div>
-    <input class="field-input" id="login-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
-    <button class="btn btn-blue" onclick="requestOTP()">Send verification code</button>
+    <input class="field-input" id="l-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
+    <button class="btn btn-blue" onclick="reqOTP()">Send verification code</button>
     <div class="divider"></div>
-    <div class="hint" style="line-height:1.7;">
-      New users will be registered automatically.<br/>
-      A verification code will be sent to your phone via SMS.
-    </div>
-    <div style="margin-top:16px;text-align:center;">
-      <a href="../" style="font-size:12px;color:var(--gray-mid);">← Back to home</a>
-    </div>
+    <div class="hint">A one-time code will be sent to your phone via SMS.<br/>New users are registered automatically.</div>
+    <div style="margin-top:16px;text-align:center;"><a href="../" style="font-size:12px;color:var(--gray-mid);">← Back</a></div>
   </div>
 </div>
 
-<!-- ===== SCREEN: OTP ===== -->
+<!-- OTP -->
 <div id="s-otp" class="screen">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title">Verify phone</div>
-      <div class="topbar-sub">One-time PIN</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title">Verify phone</div><div class="topbar-sub">One-time PIN</div></div></div>
   <div class="content">
-    <div style="text-align:center;padding:20px 0 16px;">
-      <div style="font-size:13px;color:var(--gray-mid);">Code sent to</div>
-      <div id="otp-phone-display" style="font-size:17px;font-weight:700;color:var(--blue);margin-top:6px;"></div>
-    </div>
-    <div class="otp-row">
-      <div class="otp-box" id="ob1">—</div>
-      <div class="otp-box" id="ob2">—</div>
-      <div class="otp-box" id="ob3">—</div>
-      <div class="otp-box" id="ob4">—</div>
-      <div class="otp-box" id="ob5">—</div>
-    </div>
-    <div class="hint">Enter the 5-digit code sent to your phone</div>
-    <!-- Manual entry for when auto-fill doesn't work -->
-    <input class="field-input" id="otp-manual" placeholder="Type code here" maxlength="5" inputmode="numeric" style="text-align:center;font-size:20px;font-family:'Ubuntu Mono',monospace;letter-spacing:8px;" oninput="onOTPInput(this.value)"/>
-    <button class="btn btn-blue" id="otp-confirm-btn" onclick="confirmOTP()">Confirm code</button>
+    <div style="text-align:center;padding:20px 0 16px;"><div style="font-size:13px;color:var(--gray-mid);">Code sent to</div><div id="otp-ph" style="font-size:17px;font-weight:700;color:var(--blue);margin-top:6px;"></div></div>
+    <div class="otp-row"><div class="otp-box" id="ob1">—</div><div class="otp-box" id="ob2">—</div><div class="otp-box" id="ob3">—</div><div class="otp-box" id="ob4">—</div><div class="otp-box" id="ob5">—</div></div>
+    <input class="field-input" id="otp-inp" placeholder="Type code here" maxlength="5" inputmode="numeric" style="text-align:center;font-size:20px;font-family:'Ubuntu Mono',monospace;letter-spacing:8px;" oninput="onOTP(this.value)"/>
+    <button class="btn btn-blue" onclick="verOTP()">Confirm code</button>
     <button class="btn-outline" onclick="show('s-login')">Back</button>
-    <div id="otp-error" style="color:var(--red-dark);font-size:12px;text-align:center;min-height:18px;margin-top:6px;"></div>
-    <!-- DEMO FALLBACK — shown if SMS API key not set -->
-    <div id="demo-otp-hint" style="display:none;background:var(--gold-lt);border-radius:8px;padding:10px;font-size:12px;color:#E65100;margin-top:10px;text-align:center;">
-      Demo mode: OTP code is <strong id="demo-code-display">—</strong>
-    </div>
+    <div id="otp-err" style="color:var(--red-dark);font-size:12px;text-align:center;min-height:18px;margin-top:6px;"></div>
+    <div id="demo-hint" style="display:none;background:var(--gold-lt);border-radius:8px;padding:10px;font-size:12px;color:#E65100;margin-top:10px;text-align:center;">Demo: OTP code is <strong id="demo-code">—</strong></div>
   </div>
 </div>
 
-<!-- ===== SCREEN: PROFILE ===== -->
+<!-- PROFILE -->
 <div id="s-profile" class="screen">
-  <div class="topbar">
-    <div>
-      <div class="topbar-title" id="profile-title">My Profile</div>
-      <div class="topbar-sub">LinkUbuntu</div>
-    </div>
-  </div>
+  <div class="topbar"><div><div class="topbar-title" id="p-title">Profile</div><div class="topbar-sub">LinkUbuntu</div></div></div>
   <div class="content">
-
-    <!-- Profile header with photo -->
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
       <div style="position:relative;">
-        <div class="avatar xl" id="profile-av" style="cursor:pointer;" onclick="document.getElementById('profile-photo-input').click()">?</div>
-        <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" onchange="updateProfilePhoto(this)"/>
-        <div style="position:absolute;bottom:0;right:0;background:var(--blue);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" onclick="document.getElementById('profile-photo-input').click()">📷</div>
+        <div class="avatar xl" id="p-av" style="cursor:pointer;" onclick="document.getElementById('ph-inp').click()">?</div>
+        <input type="file" id="ph-inp" accept="image/*" style="display:none;" onchange="doPhoto(this)"/>
+        <div style="position:absolute;bottom:0;right:0;background:var(--blue);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;" onclick="document.getElementById('ph-inp').click()">📷</div>
       </div>
-      <div>
-        <div style="font-size:19px;font-weight:700;" id="profile-name">Loading...</div>
-        <div style="font-size:12px;color:var(--gray-mid);margin:3px 0;" id="profile-id-display"></div>
-        <span class="tag tag-blue">Verified</span>
-      </div>
+      <div><div style="font-size:19px;font-weight:700;" id="p-name">—</div><div style="font-size:12px;color:var(--gray-mid);margin:3px 0;" id="p-sub">—</div><span class="tag tag-blue">Verified</span></div>
     </div>
-
-    <!-- Medical info card — editable -->
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div class="section-title" style="margin:0;">Medical info (optional)</div>
-        <button class="btn-sm" style="background:var(--blue-light);color:var(--blue);" onclick="toggleMedicalEdit()">Edit</button>
-      </div>
-      <!-- View mode -->
-      <div id="medical-view" style="display:flex;gap:0;">
-        <div style="flex:1;text-align:center;">
-          <div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Blood type</div>
-          <div style="font-size:20px;font-weight:700;color:var(--blue);" id="view-blood">—</div>
-        </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div class="section-title" style="margin:0;">Medical info (optional)</div><button class="btn-sm" style="background:var(--blue-lt);color:var(--blue);" onclick="togMed()">Edit</button></div>
+      <div id="med-view" style="display:flex;gap:0;">
+        <div style="flex:1;text-align:center;"><div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Blood</div><div style="font-size:20px;font-weight:700;color:var(--blue);" id="v-blood">—</div></div>
         <div style="width:1px;background:var(--border);"></div>
-        <div style="flex:1;text-align:center;padding:0 8px;">
-          <div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Allergies</div>
-          <div style="font-size:12px;font-weight:700;color:var(--red-dark);" id="view-allergy">—</div>
-        </div>
+        <div style="flex:1;text-align:center;padding:0 8px;"><div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Allergies</div><div style="font-size:12px;font-weight:700;color:var(--red-dark);" id="v-allergy">—</div></div>
         <div style="width:1px;background:var(--border);"></div>
-        <div style="flex:1;text-align:center;">
-          <div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Condition</div>
-          <div style="font-size:12px;font-weight:700;color:var(--gray-mid);" id="view-condition">—</div>
-        </div>
+        <div style="flex:1;text-align:center;"><div style="font-size:10px;color:var(--gray-mid);margin-bottom:4px;">Condition</div><div style="font-size:12px;font-weight:700;color:var(--gray-mid);" id="v-cond">—</div></div>
       </div>
-      <!-- Edit mode -->
-      <div id="medical-edit" style="display:none;margin-top:10px;">
+      <div id="med-edit" style="display:none;margin-top:12px;">
         <div class="field-label">Blood type</div>
-        <select class="field-input" id="edit-blood">
-          <option value="">Not specified</option>
-          <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
-          <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
-        </select>
-        <div class="field-label">Allergies</div>
-        <input class="field-input" id="edit-allergy" placeholder="e.g. Penicillin, None"/>
-        <div class="field-label">Medical condition</div>
-        <input class="field-input" id="edit-condition" placeholder="e.g. Diabetic, Epilepsy, None"/>
-        <button class="btn btn-blue" onclick="saveMedicalInfo()">Save medical info</button>
-        <button class="btn-outline" onclick="toggleMedicalEdit()">Cancel</button>
+        <select class="field-input" id="e-blood"><option value="">Not specified</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+        <div class="field-label">Allergies</div><input class="field-input" id="e-allergy" placeholder="e.g. Penicillin, None"/>
+        <div class="field-label">Condition</div><input class="field-input" id="e-cond" placeholder="e.g. Diabetic, None"/>
+        <button class="btn btn-blue" onclick="saveMed()">Save</button>
+        <button class="btn-outline" onclick="togMed()">Cancel</button>
       </div>
     </div>
-
-    <!-- Emergency contacts section -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
       <div class="section-title" style="margin:0;">My emergency web</div>
-      <button class="btn-sm btn-blue btn" style="font-size:11px;padding:5px 12px;" onclick="show('s-add-contact')">+ Add</button>
+      <button class="btn btn-blue btn-sm" style="font-size:11px;padding:5px 12px;" onclick="show('s-add')">+ Add</button>
     </div>
-
-    <div id="contacts-list">
-      <div class="hint">Loading contacts...</div>
-    </div>
-
+    <div id="ct-list"><div class="hint">Loading...</div></div>
     <button class="btn-outline" onclick="signOut()" style="margin-top:16px;">Sign out</button>
   </div>
 </div>
 
-<!-- ===== SCREEN: ADD CONTACT ===== -->
-<div id="s-add-contact" class="screen">
-  <div class="topbar">
-    <button class="back-btn" onclick="show('s-profile')">← Back</button>
-    <div style="flex:1;margin-left:10px;">
-      <div class="topbar-title">Add emergency contact</div>
-    </div>
-  </div>
+<!-- ADD CONTACT -->
+<div id="s-add" class="screen">
+  <div class="topbar"><button class="back-btn" onclick="show('s-profile')">← Back</button><div style="flex:1;margin-left:10px;"><div class="topbar-title">Add emergency contact</div></div></div>
   <div class="content">
-    <div style="background:var(--blue-light);border-radius:8px;padding:12px;font-size:12px;color:var(--blue);margin-bottom:16px;line-height:1.6;">
-      Add anyone whose number you want called or messaged if you are in an emergency. They do not need to have the app.
-    </div>
-
-    <div class="field-label">Contact name *</div>
-    <input class="field-input" id="new-contact-name" placeholder="e.g. Nomsa Nkosi"/>
-
-    <div class="field-label">Cell phone number *</div>
-    <input class="field-input" id="new-contact-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
-
+    <div style="background:var(--blue-lt);border-radius:8px;padding:12px;font-size:12px;color:var(--blue);margin-bottom:16px;line-height:1.6;">Add anyone whose number must be called if you are in an emergency. They do not need the app.</div>
+    <div class="field-label">Contact name *</div><input class="field-input" id="nc-name" placeholder="e.g. Nomsa Nkosi"/>
+    <div class="field-label">Cell phone number *</div><input class="field-input" id="nc-phone" placeholder="e.g. 0821234567" inputmode="tel"/>
     <div class="field-label">Relationship</div>
-    <select class="field-input" id="new-contact-rel">
-      <option>Spouse / partner</option>
-      <option>Parent</option>
-      <option>Child</option>
-      <option>Sibling</option>
-      <option>Close friend</option>
-      <option>Employer</option>
-      <option>Doctor / clinic</option>
-      <option>Other family</option>
-    </select>
-
+    <select class="field-input" id="nc-rel"><option>Spouse / partner</option><option>Parent</option><option>Child</option><option>Sibling</option><option>Close friend</option><option>Employer</option><option>Doctor / clinic</option><option>Other family</option></select>
     <div class="field-label">Notify priority</div>
-    <select class="field-input" id="new-contact-pri">
-      <option value="1">Priority 1 — first to be called</option>
-      <option value="2">Priority 2 — second to be called</option>
-      <option value="3">Priority 3 — third to be called</option>
-    </select>
-
-    <button class="btn btn-blue" onclick="saveNewContact()">Add to my emergency web</button>
+    <select class="field-input" id="nc-pri"><option value="1">Priority 1 — first to be called</option><option value="2">Priority 2 — second</option><option value="3">Priority 3 — third</option></select>
+    <button class="btn btn-blue" onclick="addCt()">Add to my emergency web</button>
     <button class="btn-outline" onclick="show('s-profile')">Cancel</button>
   </div>
 </div>
 
-<script type="module">
-import {
-  getCitizen, saveCitizen, updateCitizen,
-  addContact, getContacts, deleteContact,
-  saveOTP, verifyOTP, uploadPhoto
-} from '../js/firebase-config.js';
-import { sendOTPSMS } from '../js/sms.js';
-
-// ---- STATE ----
-let currentID    = null;  // logged-in citizen's ID number
-let currentPhone = null;  // their phone number
-let pendingOTP   = null;  // the OTP code we sent (for demo fallback)
-let isNewUser    = false; // true if registering for first time
-
-// ---- SCREEN SWITCHER ----
-function show(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0,0);
+<script src="../js/api.js"></script>
+<script>
+let curID=null, curPhone=null;
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function onID(v){const h=document.getElementById('l-hint');if(v.length===13){h.textContent='✓ Ready';h.style.color='var(--green)';}else if(v.length>0){h.textContent=(13-v.length)+' remaining';h.style.color='var(--gray-mid)';}else h.textContent='';}
+async function reqOTP(){
+    const id=document.getElementById('l-id').value.trim(), ph=document.getElementById('l-phone').value.trim();
+    if(id.length!==13){showToast('Enter 13-digit SA ID','error');return;}
+    if(!ph){showToast('Enter phone number','error');return;}
+    curID=id; curPhone=ph; showToast('Sending code...');
+    const r=await sendOTPAPI(ph);
+    document.getElementById('otp-ph').textContent=ph;
+    document.getElementById('otp-inp').value='';
+    document.getElementById('otp-err').textContent='';
+    ['ob1','ob2','ob3','ob4','ob5'].forEach(b=>{document.getElementById(b).textContent='—';document.getElementById(b).classList.remove('filled');});
+    if(r.demo_code){document.getElementById('demo-hint').style.display='block';document.getElementById('demo-code').textContent=r.demo_code;showToast('Demo: see code below','warning');}
+    else{document.getElementById('demo-hint').style.display='none';showToast('Code sent ✓','success');}
+    show('s-otp');
 }
-window.show = show;
-
-// ---- LOGIN SCREEN ----
-function onLoginIDInput(val) {
-  const hint = document.getElementById('login-id-hint');
-  if (val.length === 13) {
-    hint.textContent = '✓ Ready to verify';
-    hint.style.color = 'var(--green)';
-  } else if (val.length > 0) {
-    hint.textContent = (13 - val.length) + ' digits remaining';
-    hint.style.color = 'var(--gray-mid)';
-  } else {
-    hint.textContent = '';
-  }
+function onOTP(v){['ob1','ob2','ob3','ob4','ob5'].forEach((id,i)=>{const b=document.getElementById(id);if(v[i]){b.textContent=v[i];b.classList.add('filled');}else{b.textContent='—';b.classList.remove('filled');}});}
+async function verOTP(){
+    const code=document.getElementById('otp-inp').value.trim();
+    if(code.length!==5){document.getElementById('otp-err').textContent='Enter 5-digit code';return;}
+    const r=await verifyOTPAPI(curPhone,code);
+    if(!r.valid){document.getElementById('otp-err').textContent='Wrong or expired code';return;}
+    const chk=await getCitizen(curID);
+    if(!chk.success) await addCitizen({id_number:curID,full_name:'New User',phone:curPhone});
+    await loadProfile(); show('s-profile');
 }
-window.onLoginIDInput = onLoginIDInput;
-
-async function requestOTP() {
-  const id    = document.getElementById('login-id').value.trim();
-  const phone = document.getElementById('login-phone').value.trim();
-
-  if (id.length !== 13)  { showToast('Enter your 13-digit SA ID number'); return; }
-  if (!phone)            { showToast('Enter your phone number'); return; }
-
-  showToast('Sending verification code...');
-
-  currentID    = id;
-  currentPhone = phone;
-
-  // Check if citizen already exists
-  const existing = await getCitizen(id);
-  isNewUser = !existing;
-
-  // Generate and send OTP
-  const result = await sendOTPSMS(phone);
-  pendingOTP = result.code;
-
-  // Save OTP to database for verification
-  await saveOTP(phone, result.code);
-
-  document.getElementById('otp-phone-display').textContent = phone;
-  document.getElementById('otp-manual').value = '';
-  document.getElementById('otp-error').textContent = '';
-  // Reset OTP boxes
-  ['ob1','ob2','ob3','ob4','ob5'].forEach(id => {
-    document.getElementById(id).textContent = '—';
-    document.getElementById(id).classList.remove('filled');
-  });
-
-  // Show demo hint if SMS API not configured
-  if (!result.sent) {
-    document.getElementById('demo-otp-hint').style.display = 'block';
-    document.getElementById('demo-code-display').textContent = result.code;
-    showToast('Demo mode: see code below');
-  } else {
-    document.getElementById('demo-otp-hint').style.display = 'none';
-    showToast('Code sent via SMS ✓');
-  }
-
-  show('s-otp');
+async function loadProfile(){
+    const r=await getCitizen(curID); if(!r.success)return; const c=r.data;
+    document.getElementById('p-title').textContent=(c.full_name||'').split(' ')[0]||'Profile';
+    document.getElementById('p-name').textContent=c.full_name||'Unknown';
+    document.getElementById('p-sub').textContent='ID: '+curID+' · '+c.phone;
+    document.getElementById('v-blood').textContent=c.blood_type||'—';
+    document.getElementById('v-allergy').textContent=c.allergies||'—';
+    document.getElementById('v-cond').textContent=c.medical_condition||'—';
+    document.getElementById('e-blood').value=c.blood_type||'';
+    document.getElementById('e-allergy').value=c.allergies||'';
+    document.getElementById('e-cond').value=c.medical_condition||'';
+    const av=document.getElementById('p-av');
+    if(c.photo_url) av.innerHTML=`<img src="${c.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
+    else av.textContent=c.initials||(c.full_name||'?').substring(0,2).toUpperCase();
+    loadContacts();
 }
-window.requestOTP = requestOTP;
-
-// Update OTP boxes as user types
-function onOTPInput(val) {
-  const digits = val.split('');
-  ['ob1','ob2','ob3','ob4','ob5'].forEach((id, i) => {
-    const box = document.getElementById(id);
-    if (digits[i]) {
-      box.textContent = digits[i];
-      box.classList.add('filled');
-    } else {
-      box.textContent = '—';
-      box.classList.remove('filled');
-    }
-  });
-}
-window.onOTPInput = onOTPInput;
-
-async function confirmOTP() {
-  const entered = document.getElementById('otp-manual').value.trim();
-  if (entered.length !== 5) { document.getElementById('otp-error').textContent = 'Enter the 5-digit code'; return; }
-
-  document.getElementById('otp-confirm-btn').textContent = 'Verifying...';
-  document.getElementById('otp-confirm-btn').disabled = true;
-
-  const valid = await verifyOTP(currentPhone, entered);
-
-  document.getElementById('otp-confirm-btn').textContent = 'Confirm code';
-  document.getElementById('otp-confirm-btn').disabled = false;
-
-  if (!valid) {
-    document.getElementById('otp-error').textContent = 'Incorrect or expired code — try again';
-    return;
-  }
-
-  // OTP correct — log in or register
-  if (isNewUser) {
-    // Create the citizen record
-    const initials = 'New';
-    await saveCitizen({
-      id_number: currentID,
-      full_name: 'New User',
-      initials:  'NU',
-      phone:     currentPhone
+async function loadContacts(){
+    const list=document.getElementById('ct-list'); list.innerHTML='<div class="hint">Loading...</div>';
+    const r=await getContacts(curID);
+    if(!r.success||!r.data.length){list.innerHTML='<div class="hint" style="padding:16px 0;">No contacts yet — tap + Add</div>';return;}
+    r.data.sort((a,b)=>(a.priority||3)-(b.priority||3));
+    const pc={1:'var(--blue)',2:'var(--green)',3:'var(--gold)'}; list.innerHTML='';
+    r.data.forEach(c=>{
+        const row=document.createElement('div'); row.className='contact-row';
+        row.innerHTML=`<div class="pri-dot" style="background:${pc[c.priority]||'#9E9E9E'};"></div><div style="flex:1;"><div style="font-size:14px;font-weight:700;">${c.name}</div><div style="font-size:11px;color:var(--gray-mid);">${c.relationship} · ${c.phone}</div></div><div style="display:flex;gap:5px;"><a href="tel:${c.phone}" class="call-btn" style="text-decoration:none;">📞</a><button style="background:var(--red-lt);color:var(--red-dark);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;" onclick="rmCt(${c.id},'${c.name}')">Remove</button></div>`;
+        list.appendChild(row);
     });
-    showToast('Account created! Update your name in the admin panel.');
-  }
-
-  loadProfile();
-  show('s-profile');
 }
-window.confirmOTP = confirmOTP;
-
-// ---- PROFILE ----
-async function loadProfile() {
-  const citizen = await getCitizen(currentID);
-  if (!citizen) return;
-
-  document.getElementById('profile-title').textContent = (citizen.full_name || '').split(' ')[0] || 'Profile';
-  document.getElementById('profile-name').textContent = citizen.full_name || 'Unknown';
-  document.getElementById('profile-id-display').textContent = 'ID: ' + currentID + '  ·  ' + citizen.phone;
-
-  // Avatar
-  const av = document.getElementById('profile-av');
-  if (citizen.photo_url) {
-    av.innerHTML = `<img src="${citizen.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
-  } else {
-    av.textContent = citizen.initials || citizen.full_name?.substring(0,2).toUpperCase() || '?';
-  }
-
-  // Medical info
-  document.getElementById('view-blood').textContent     = citizen.blood_type || '—';
-  document.getElementById('view-allergy').textContent   = citizen.allergies || '—';
-  document.getElementById('view-condition').textContent = citizen.medical_condition || '—';
-  document.getElementById('edit-blood').value           = citizen.blood_type || '';
-  document.getElementById('edit-allergy').value         = citizen.allergies || '';
-  document.getElementById('edit-condition').value       = citizen.medical_condition || '';
-
-  // Load contacts
-  loadContacts();
-}
-
-async function loadContacts() {
-  const list = document.getElementById('contacts-list');
-  list.innerHTML = '<div class="hint">Loading...</div>';
-  const contacts = await getContacts(currentID);
-  if (contacts.length === 0) {
-    list.innerHTML = '<div class="hint" style="padding:16px 0;">No emergency contacts yet — tap + Add to add your first contact.</div>';
-    return;
-  }
-  // Sort by priority
-  contacts.sort((a, b) => (a.priority || 3) - (b.priority || 3));
-  const priColors = { 1:'var(--blue)', 2:'var(--green)', 3:'var(--gold)' };
-  list.innerHTML = '';
-  contacts.forEach(c => {
-    const row = document.createElement('div');
-    row.className = 'contact-row';
-    row.innerHTML = `
-      <div class="pri-dot" style="background:${priColors[c.priority] || '#9E9E9E'};"></div>
-      <div style="flex:1;">
-        <div style="font-size:14px;font-weight:700;">${c.name}</div>
-        <div style="font-size:11px;color:var(--gray-mid);">${c.relationship} &nbsp;·&nbsp; ${c.phone}</div>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <a href="tel:${c.phone}" class="call-btn" style="text-decoration:none;font-size:11px;padding:5px 10px;">📞</a>
-        <button style="background:var(--red-lt);color:var(--red-dark);border:none;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;" onclick="removeContact('${c.id}', '${c.name}')">Remove</button>
-      </div>`;
-    list.appendChild(row);
-  });
-}
-
-// ---- PHOTO UPDATE ----
-async function updateProfilePhoto(input) {
-  if (!input.files || !input.files[0]) return;
-  showToast('Uploading photo...');
-  const url = await uploadPhoto(currentID, input.files[0]);
-  await updateCitizen(currentID, { photo_url: url });
-  document.getElementById('profile-av').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;
-  showToast('Profile photo updated ✓');
-}
-window.updateProfilePhoto = updateProfilePhoto;
-
-// ---- MEDICAL INFO ----
-function toggleMedicalEdit() {
-  const view = document.getElementById('medical-view');
-  const edit = document.getElementById('medical-edit');
-  if (view.style.display === 'none') {
-    view.style.display = 'flex';
-    edit.style.display = 'none';
-  } else {
-    view.style.display = 'none';
-    edit.style.display = 'block';
-  }
-}
-window.toggleMedicalEdit = toggleMedicalEdit;
-
-async function saveMedicalInfo() {
-  const blood     = document.getElementById('edit-blood').value;
-  const allergy   = document.getElementById('edit-allergy').value.trim();
-  const condition = document.getElementById('edit-condition').value.trim();
-  await updateCitizen(currentID, { blood_type: blood, allergies: allergy, medical_condition: condition });
-  document.getElementById('view-blood').textContent     = blood || '—';
-  document.getElementById('view-allergy').textContent   = allergy || '—';
-  document.getElementById('view-condition').textContent = condition || '—';
-  toggleMedicalEdit();
-  showToast('Medical info saved ✓');
-}
-window.saveMedicalInfo = saveMedicalInfo;
-
-// ---- ADD CONTACT ----
-async function saveNewContact() {
-  const name  = document.getElementById('new-contact-name').value.trim();
-  const phone = document.getElementById('new-contact-phone').value.trim();
-  const rel   = document.getElementById('new-contact-rel').value;
-  const pri   = parseInt(document.getElementById('new-contact-pri').value);
-
-  if (!name)  { showToast('Contact name is required'); return; }
-  if (!phone) { showToast('Phone number is required'); return; }
-
-  await addContact({ citizen_id: currentID, name, phone, relationship: rel, priority: pri });
-  showToast('Contact added ✓');
-  show('s-profile');
-  loadContacts();
-}
-window.saveNewContact = saveNewContact;
-
-async function removeContact(contactId, name) {
-  if (!confirm('Remove ' + name + ' from your emergency web?')) return;
-  await deleteContact(contactId);
-  showToast(name + ' removed');
-  loadContacts();
-}
-window.removeContact = removeContact;
-
-// ---- SIGN OUT ----
-function signOut() {
-  currentID = null;
-  currentPhone = null;
-  document.getElementById('login-id').value = '';
-  document.getElementById('login-phone').value = '';
-  show('s-login');
-}
-window.signOut = signOut;
-
-// ---- TOAST ----
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
-window.showToast = showToast;
+async function doPhoto(inp){if(!inp.files[0])return;showToast('Uploading...');const r=await uploadCitizenPhoto(curID,inp.files[0]);if(r.success){document.getElementById('p-av').innerHTML=`<img src="${r.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>`;showToast('Photo updated ✓','success');}}
+function togMed(){const v=document.getElementById('med-view'),e=document.getElementById('med-edit');v.style.display=v.style.display==='none'?'flex':'none';e.style.display=e.style.display==='none'?'block':'none';}
+async function saveMed(){const r=await updateMedical(curID,{blood_type:document.getElementById('e-blood').value,allergies:document.getElementById('e-allergy').value,medical_condition:document.getElementById('e-cond').value});if(r.success){document.getElementById('v-blood').textContent=document.getElementById('e-blood').value||'—';document.getElementById('v-allergy').textContent=document.getElementById('e-allergy').value||'—';document.getElementById('v-cond').textContent=document.getElementById('e-cond').value||'—';togMed();showToast('Saved ✓','success');}}
+async function addCt(){const nm=document.getElementById('nc-name').value.trim(),ph=document.getElementById('nc-phone').value.trim();if(!nm){showToast('Name required','error');return;}if(!ph){showToast('Phone required','error');return;}const r=await addContactAPI(curID,{name:nm,phone:ph,relationship:document.getElementById('nc-rel').value,priority:parseInt(document.getElementById('nc-pri').value)});if(r.success){showToast('Contact added ✓','success');show('s-profile');loadContacts();}else showToast(r.error,'error');}
+async function rmCt(id,name){if(!confirm('Remove '+name+'?'))return;await removeContactAPI(id);showToast('Removed','success');loadContacts();}
+function signOut(){curID=null;curPhone=null;document.getElementById('l-id').value='';document.getElementById('l-phone').value='';show('s-login');}
 </script>
 </body>
 </html>
